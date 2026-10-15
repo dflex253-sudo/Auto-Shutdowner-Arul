@@ -1,0 +1,41 @@
+name: Build Windows EXE (Windows 7 legacy attempt)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x86, x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8.10"
+          architecture: ${{ matrix.architecture }}
+
+      - name: Install Windows 7-era PyInstaller
+        run: python -m pip install "pyinstaller==5.13.2"
+
+      - name: Build EXE
+        run: pyinstaller --noconfirm --clean --onefile --windowed --name AutoShutdowner app.py
+
+      - name: Rename build
+        shell: pwsh
+        run: Move-Item "dist/AutoShutdowner.exe" "dist/AutoShutdowner-${{ matrix.architecture }}-legacy.exe"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AutoShutdowner-${{ matrix.architecture }}-legacy
+          path: dist/AutoShutdowner-${{ matrix.architecture }}-legacy.exe
+          if-no-files-found: error
